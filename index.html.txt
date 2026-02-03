@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>BTG Technology – Payment</title>
+</head>
+<body>
+
+<h2>Payment Request</h2>
+
+<p>
+  <strong>Service:</strong> Consulting – Invoice #001<br>
+  <strong>Amount:</strong> 0.22802885021015 ETH
+</p>
+
+<button id="connect">Connect Wallet</button>
+<button id="pay" disabled>Pay Now</button>
+
+<script type="module">
+  import SignClient from "https://esm.sh/@walletconnect/sign-client";
+
+  const PROJECT_ID = "3a25f7e3ad4aa26d7d4fc629e48a06b7";
+  const RECEIVING_ADDRESS = "0x4d6f52d18aad91492c1591a3ed498a35a2cff13e";
+
+  let client;
+  let session;
+  let userAddress;
+
+  async function init() {
+    client = await SignClient.init({
+      projectId: PROJECT_ID,
+      metadata: {
+        name: "BTG Technology",
+        description: "Invoice payment",
+        url: window.location.href,
+        icons: []
+      }
+    });
+  }
+
+  document.getElementById("connect").onclick = async () => {
+    const { uri, approval } = await client.connect({
+      requiredNamespaces: {
+        eip155: {
+          methods: ["eth_sendTransaction"],
+          chains: ["eip155:1"],
+          events: []
+        }
+      }
+    });
+
+    if (uri) {
+      window.location.href = uri;
+    }
+
+    session = await approval();
+    userAddress = session.namespaces.eip155.accounts[0].split(":")[2];
+    document.getElementById("pay").disabled = false;
+  };
+
+  document.getElementById("pay").onclick = async () => {
+    await client.request({
+      topic: session.topic,
+      chainId: "eip155:1",
+      request: {
+        method: "eth_sendTransaction",
+        params: [{
+          from: userAddress,
+          to: RECEIVING_ADDRESS,
+          value: "0x3299d71f8c8b000" // 0.22802885021015 ETH
+        }]
+      }
+    });
+  };
+
+  init();
+</script>
+
+</body>
+</html>
