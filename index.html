@@ -5,7 +5,7 @@
   <title>BTG Technology – Payment</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <!-- QR code library -->
+  <!-- QR library -->
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
 </head>
 <body>
@@ -18,7 +18,7 @@
 </p>
 
 <h3>Step 1: Scan with Trust Wallet</h3>
-<canvas id="qrcode"></canvas>
+<img id="qrimg" style="width:260px;height:260px;border:1px solid #ccc" />
 
 <h3>Step 2: Pay</h3>
 <button id="pay" disabled>Pay Now</button>
@@ -31,12 +31,8 @@
   /* ================= CONFIG ================= */
 
   const PROJECT_ID = "3a25f7e3ad4aa26d7d4fc629e48a06b7";
-
-  // Receiving (business) wallet
   const RECEIVING_ADDRESS =
     "0xA25900EA2A1915D549FB5a9CFb0a4FCA27a6Cd35";
-
-  // 0.22802885021015 ETH in wei (hex)
   const VALUE_HEX = "0x0329f6b8d8c4c1e0";
 
   /* ========================================== */
@@ -61,10 +57,24 @@
     });
 
     log("WalletConnect initialized");
+
+    // 🔥 FORCE CLEAR OLD SESSIONS
+    if (client.session.values.length > 0) {
+      log("Clearing old WalletConnect sessions...");
+      for (const s of client.session.values) {
+        await client.disconnect({
+          topic: s.topic,
+          reason: { code: 6000, message: "Reset session" }
+        });
+      }
+    }
+
     await createConnection();
   }
 
   async function createConnection() {
+    log("Creating WalletConnect session...");
+
     const { uri, approval } = await client.connect({
       requiredNamespaces: {
         eip155: {
@@ -75,13 +85,21 @@
       }
     });
 
-    // ✅ DRAW QR CODE PROPERLY
-    const canvas = document.getElementById("qrcode");
-    await QRCode.toCanvas(canvas, uri, { width: 260 });
+    if (!uri) {
+      log("❌ NO URI RETURNED — QR CANNOT BE GENERATED");
+      log("Refresh the page and try again.");
+      return;
+    }
 
-    log("QR code generated. Scan with Trust Wallet.");
+    log("URI received, generating QR...");
 
-    // Wait for wallet approval
+    // ✅ MOST RELIABLE QR METHOD
+    const qrDataUrl = await QRCode.toDataURL(uri);
+    document.getElementById("qrimg").src = qrDataUrl;
+
+    log("QR code visible. Scan with Trust Wallet.");
+
+    // Wait for wallet to scan & approve
     session = await approval();
     userAddress = session.namespaces.eip155.accounts[0].split(":")[2];
 
@@ -94,7 +112,7 @@
 
   document.getElementById("pay").onclick = async () => {
     try {
-      log("Requesting payment…");
+      log("Requesting payment...");
 
       const tx = await client.request({
         topic: session.topic,
