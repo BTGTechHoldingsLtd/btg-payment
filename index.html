@@ -4,6 +4,9 @@
   <meta charset="UTF-8" />
   <title>BTG Technology – Payment</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- QR code library -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
 </head>
 <body>
 
@@ -14,7 +17,10 @@
   <strong>Amount:</strong> 0.22802885021015 ETH
 </p>
 
-<button id="connect">Connect Wallet</button>
+<h3>Step 1: Scan with Trust Wallet</h3>
+<div id="qrcode"></div>
+
+<h3>Step 2: Pay</h3>
 <button id="pay" disabled>Pay Now</button>
 
 <pre id="log" style="white-space:pre-wrap;color:red;margin-top:20px;"></pre>
@@ -22,29 +28,25 @@
 <script type="module">
   import SignClient from "https://esm.sh/@walletconnect/sign-client";
 
-  /* ===================== CONFIG ===================== */
+  /* ================= CONFIG ================= */
 
-  // WalletConnect Project ID
   const PROJECT_ID = "3a25f7e3ad4aa26d7d4fc629e48a06b7";
 
-  // RECEIVING (your business wallet)
-  const RECEIVING_ADDRESS = "0xA25900EA2A1915D549FB5a9CFb0a4FCA27a6Cd35";
+  // Your business wallet (receiver)
+  const RECEIVING_ADDRESS =
+    "0xA25900EA2A1915D549FB5a9CFb0a4FCA27a6Cd35";
 
-  // SENDING (client wallet – shown here only for clarity)
-  // 0xfd50A8057ed2Af0Ee92Fed0CcA82035A256c91e4
-
-  // 0.22802885021015 ETH in wei (hex)
+  // 0.22802885021015 ETH in hex wei
   const VALUE_HEX = "0x0329f6b8d8c4c1e0";
 
-  /* ================================================== */
+  /* ========================================== */
 
   let client;
   let session;
   let userAddress;
 
-  const logEl = document.getElementById("log");
   const log = (msg) => {
-    logEl.textContent += msg + "\n";
+    document.getElementById("log").textContent += msg + "\n";
   };
 
   async function init() {
@@ -57,50 +59,46 @@
         icons: []
       }
     });
+
     log("WalletConnect initialized");
+    await createConnection();
   }
 
-  /* ---------- CONNECT WALLET ---------- */
-  document.getElementById("connect").onclick = async () => {
-    try {
-      log("Connecting wallet...");
-
-      const { uri, approval } = await client.connect({
-        requiredNamespaces: {
-          eip155: {
-            methods: ["eth_sendTransaction"],
-            chains: ["eip155:1"],
-            events: []
-          }
+  async function createConnection() {
+    const { uri, approval } = await client.connect({
+      requiredNamespaces: {
+        eip155: {
+          methods: ["eth_sendTransaction"],
+          chains: ["eip155:1"],
+          events: []
         }
-      });
-
-      if (uri) {
-        // IMPORTANT: keeps JS session alive on iOS
-        window.open(uri, "_blank");
       }
+    });
 
-      session = await approval();
-      userAddress = session.namespaces.eip155.accounts[0].split(":")[2];
+    // Render QR code
+    QRCode.toCanvas(
+      document.getElementById("qrcode"),
+      uri,
+      { width: 260 },
+      () => log("Scan QR with Trust Wallet")
+    );
 
-      log("Wallet connected:");
-      log("From address: " + userAddress);
-      log("To address:   " + RECEIVING_ADDRESS);
+    // Wait for wallet approval
+    session = await approval();
+    userAddress = session.namespaces.eip155.accounts[0].split(":")[2];
 
-      document.getElementById("pay").disabled = false;
+    log("Wallet connected:");
+    log("From: " + userAddress);
+    log("To:   " + RECEIVING_ADDRESS);
 
-    } catch (e) {
-      log("CONNECT ERROR:");
-      log(e.message || JSON.stringify(e));
-    }
-  };
+    document.getElementById("pay").disabled = false;
+  }
 
-  /* ---------- PAY NOW ---------- */
   document.getElementById("pay").onclick = async () => {
     try {
-      log("Requesting payment...");
+      log("Requesting payment…");
 
-      const txHash = await client.request({
+      const tx = await client.request({
         topic: session.topic,
         chainId: "eip155:1",
         request: {
@@ -115,9 +113,8 @@
         }
       });
 
-      log("Transaction sent successfully!");
-      log("Transaction hash:");
-      log(txHash);
+      log("Transaction sent!");
+      log("Tx hash: " + tx);
 
     } catch (e) {
       log("PAYMENT ERROR:");
