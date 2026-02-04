@@ -1,14 +1,14 @@
 <!DOCTYPE html>
-<!-- VERSION: BTG-PAYMENT-QR v1.0.2 -->
+<!-- VERSION: BTG-PAYMENT-QR v1.0.3 -->
 <html>
 <head>
   <meta charset="UTF-8" />
-  <title>BTG Technology – Payment (v1.0.2)</title>
+  <title>BTG Technology – Payment (v1.0.3)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 </head>
 <body>
 
-<h1 style="color:green;">✅ VERSION v1.0.2 LOADED</h1>
+<h1 style="color:green;">✅ VERSION v1.0.3 LOADED</h1>
 
 <h2>Payment Request</h2>
 
@@ -37,15 +37,15 @@
 
   const PROJECT_ID = "3a25f7e3ad4aa26d7d4fc629e48a06b7";
 
-  // BUSINESS (receiving) wallet
   const RECEIVING_ADDRESS =
     "0xA25900EA2A1915D549FB5a9CFb0a4FCA27a6Cd35";
 
-  // 0.22802885021015 ETH → wei → hex
+  // 0.22802885021015 ETH
   const VALUE_HEX = "0x0329f6b8d8c4c1e0";
 
-  // Standard ETH transfer gas (21000)
-  const GAS_HEX = "0x5208";
+  // Gas settings (Trust Wallet REQUIRED)
+  const GAS_LIMIT = "0x5208";        // 21000
+  const GAS_PRICE = "0x3B9ACA00";    // 1 gwei
 
   /* ================== */
 
@@ -103,43 +103,4 @@
       log("From: " + userAddress);
       log("To:   " + RECEIVING_ADDRESS);
 
-      document.getElementById("pay").disabled = false;
-
-    } catch (e) {
-      log("CONNECT ERROR:");
-      log(e.message || JSON.stringify(e));
-    }
-  };
-
-  document.getElementById("pay").onclick = async () => {
-    try {
-      log("Requesting payment…");
-
-      const tx = await client.request({
-        topic: session.topic,
-        chainId: "eip155:1",
-        request: {
-          method: "eth_sendTransaction",
-          params: [{
-            from: userAddress,
-            to: RECEIVING_ADDRESS,
-            value: VALUE_HEX,
-            gas: GAS_HEX
-          }]
-        }
-      });
-
-      log("Transaction sent!");
-      log("Tx hash: " + tx);
-
-    } catch (e) {
-      log("PAYMENT ERROR:");
-      log(e.message || JSON.stringify(e));
-    }
-  };
-
-  init();
-</script>
-
-</body>
-</html>
+      document.ge
