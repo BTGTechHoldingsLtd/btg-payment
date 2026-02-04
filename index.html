@@ -9,7 +9,7 @@
 <h2>Payment Request</h2>
 
 <p>
-  <strong>Service:</strong> Consulting – Invoice #001<br>
+  <strong>Service:</strong> Consulting – Invoice #921862105<br>
   <strong>Amount:</strong> 0.22802885021015 ETH
 </p>
 
@@ -19,8 +19,13 @@
 <script type="module">
   import SignClient from "https://esm.sh/@walletconnect/sign-client";
 
+  // ===== CONFIG =====
   const PROJECT_ID = "3a25f7e3ad4aa26d7d4fc629e48a06b7";
   const RECEIVING_ADDRESS = "0xeDcaF7e899E73Cd9FFC57EFaa6F33bcB328C74ad";
+
+  // 0.22802885021015 ETH in wei (hex)
+  const VALUE_HEX = "0x0329f6b8d8c4c1e0";
+  // ==================
 
   let client;
   let session;
@@ -38,39 +43,68 @@
     });
   }
 
+  // -------- CONNECT WALLET --------
   document.getElementById("connect").onclick = async () => {
-    const { uri, approval } = await client.connect({
-      requiredNamespaces: {
-        eip155: {
-          methods: ["eth_sendTransaction"],
-          chains: ["eip155:1"],
-          events: []
+    try {
+      const { uri, approval } = await client.connect({
+        requiredNamespaces: {
+          eip155: {
+            methods: [
+              "eth_sendTransaction",
+              "eth_signTransaction"
+            ],
+            chains: ["eip155:1"],
+            events: []
+          }
         }
+      });
+
+      if (uri) {
+        // IMPORTANT: keeps JS session alive
+        window.open(uri, "_blank");
       }
-    });
 
-    if (uri) {
-      window.location.href = uri;
+      session = await approval();
+
+      userAddress =
+        session.namespaces.eip155.accounts[0].split(":")[2];
+
+      document.getElementById("pay").disabled = false;
+      console.log("Wallet connected:", userAddress);
+
+    } catch (err) {
+      console.error("CONNECT ERROR:", err);
+      alert("Wallet connection failed. Check console.");
     }
-
-    session = await approval();
-    userAddress = session.namespaces.eip155.accounts[0].split(":")[2];
-    document.getElementById("pay").disabled = false;
   };
 
+  // -------- PAY NOW --------
   document.getElementById("pay").onclick = async () => {
-    await client.request({
-      topic: session.topic,
-      chainId: "eip155:1",
-      request: {
-        method: "eth_sendTransaction",
-        params: [{
-          from: userAddress,
-          to: RECEIVING_ADDRESS,
-          value: "0x3299d71f8c8b000" // 0.22802885021015 ETH
-        }]
-      }
-    });
+    try {
+      console.log("Requesting payment...");
+
+      const tx = await client.request({
+        topic: session.topic,
+        chainId: "eip155:1",
+        request: {
+          method: "eth_sendTransaction",
+          params: [
+            {
+              from: userAddress,
+              to: RECEIVING_ADDRESS,
+              value: VALUE_HEX
+            }
+          ]
+        }
+      });
+
+      console.log("Transaction hash:", tx);
+      alert("Transaction sent to Trust Wallet");
+
+    } catch (err) {
+      console.error("PAYMENT ERROR:", err);
+      alert("Payment failed. Check console.");
+    }
   };
 
   init();
@@ -78,4 +112,3 @@
 
 </body>
 </html>
-
