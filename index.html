@@ -1,17 +1,14 @@
 <!DOCTYPE html>
-<!-- VERSION: BTG-PAYMENT-QR v1.0.0 -->
+<!-- VERSION: BTG-PAYMENT-QR v1.0.1 -->
 <html>
 <head>
   <meta charset="UTF-8" />
-  <title>BTG Technology – Payment (v1.0.0)</title>
+  <title>BTG Technology – Payment (v1.0.1)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-  <!-- QR library -->
-  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
 </head>
 <body>
 
-<h1 style="color:green;">✅ VERSION v1.0.0 LOADED</h1>
+<h1 style="color:green;">✅ VERSION v1.0.1 LOADED</h1>
 
 <h2>Payment Request</h2>
 
@@ -34,16 +31,17 @@
 
 <script type="module">
   import SignClient from "https://esm.sh/@walletconnect/sign-client";
+  import QRCode from "https://esm.sh/qrcode@1.5.4";
 
   /* ===== CONFIG ===== */
 
   const PROJECT_ID = "3a25f7e3ad4aa26d7d4fc629e48a06b7";
 
-  // Your BUSINESS wallet (receiver)
+  // BUSINESS (receiving) wallet
   const RECEIVING_ADDRESS =
     "0xA25900EA2A1915D549FB5a9CFb0a4FCA27a6Cd35";
 
-  // 0.22802885021015 ETH (wei → hex)
+  // 0.22802885021015 ETH → wei → hex
   const VALUE_HEX = "0x0329f6b8d8c4c1e0";
 
   /* ================== */
@@ -88,10 +86,10 @@
         return;
       }
 
-      // Render QR
-      const qr = await QRCode.toDataURL(uri);
+      // ✅ Generate QR safely (module import)
+      const qrDataUrl = await QRCode.toDataURL(uri);
       const img = document.getElementById("qrimg");
-      img.src = qr;
+      img.src = qrDataUrl;
       img.style.display = "block";
 
       log("QR generated. Scan with Trust Wallet.");
