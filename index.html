@@ -1,14 +1,14 @@
 <!DOCTYPE html>
-<!-- VERSION: BTG-PAYMENT-QR v1.0.5 -->
+<!-- VERSION: BTG-PAYMENT-QR v1.0.6 -->
 <html>
 <head>
   <meta charset="UTF-8" />
-  <title>BTG Technology – Payment (v1.0.5)</title>
+  <title>BTG Technology – Payment (v1.0.6)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 </head>
 <body>
 
-<h1 style="color:green;">✅ VERSION v1.0.5 LOADED</h1>
+<h1 style="color:green;">✅ VERSION v1.0.6 LOADED</h1>
 
 <h2>Payment Request</h2>
 
@@ -33,30 +33,31 @@
   import SignClient from "https://esm.sh/@walletconnect/sign-client";
   import QRCode from "https://esm.sh/qrcode@1.5.4";
 
-  /* ===== CONFIG ===== */
+  /* ================= CONFIG ================= */
 
   const PROJECT_ID = "3a25f7e3ad4aa26d7d4fc629e48a06b7";
+
+  // Your BUSINESS receiving wallet
   const RECEIVING_ADDRESS =
     "0xA25900EA2A1915D549FB5a9CFb0a4FCA27a6Cd35";
 
-  // 0.22802885021015 ETH
+  // 0.22802885021015 ETH (wei → hex)
   const VALUE_HEX = "0x0329f6b8d8c4c1e0";
 
-  // Trust Wallet REQUIRED fields
-  const GAS_LIMIT  = "0x5208";       // 21000
-  const GAS_PRICE  = "0x3B9ACA00";   // 1 gwei
-  const CHAIN_ID   = "0x1";          // Ethereum mainnet
-  const TX_TYPE    = "0x0";          // legacy tx
+  // Required by Trust Wallet
+  const GAS_LIMIT = "0x5208";        // 21000
+  const GAS_PRICE = "0x3B9ACA00";    // 1 gwei
 
-  /* ================== */
+  /* ========================================== */
 
   let client;
   let session = null;
   let userAddress = null;
   let connecting = false;
 
-  const log = (m) =>
-    document.getElementById("log").textContent += m + "\n";
+  const log = (msg) => {
+    document.getElementById("log").textContent += msg + "\n";
+  };
 
   async function init() {
     client = await SignClient.init({
@@ -71,7 +72,7 @@
 
     log("WalletConnect initialized");
 
-    // Clear stale sessions
+    // Clear any stale sessions (important during testing)
     for (const s of client.session.values) {
       await client.disconnect({
         topic: s.topic,
@@ -80,6 +81,7 @@
     }
   }
 
+  // USER ACTION REQUIRED
   document.getElementById("connect").onclick = async () => {
     if (connecting) return;
     connecting = true;
@@ -103,18 +105,20 @@
         return;
       }
 
+      // Generate QR
       const qr = await QRCode.toDataURL(uri);
       const img = document.getElementById("qrimg");
       img.src = qr;
       img.style.display = "block";
 
-      log("QR generated — scan with Trust Wallet");
+      log("QR generated. Scan with Trust Wallet.");
 
+      // Wait for wallet approval
       session = await approval();
       userAddress =
         session.namespaces.eip155.accounts[0].split(":")[2];
 
-      log("Wallet connected");
+      log("Wallet connected:");
       log("From: " + userAddress);
       log("To:   " + RECEIVING_ADDRESS);
 
@@ -129,6 +133,11 @@
   };
 
   document.getElementById("pay").onclick = async () => {
+    if (!session) {
+      log("❌ No active session");
+      return;
+    }
+
     try {
       log("Requesting payment…");
 
@@ -143,13 +152,12 @@
             value: VALUE_HEX,
             gas: GAS_LIMIT,
             gasPrice: GAS_PRICE,
-            chainId: CHAIN_ID,
-            type: TX_TYPE
+            data: "0x"        // 🔑 REQUIRED BY TRUST WALLET
           }]
         }
       });
 
-      log("Transaction sent");
+      log("Transaction sent!");
       log("Tx hash: " + tx);
 
     } catch (e) {
