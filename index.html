@@ -17,8 +17,10 @@
   <strong>Amount:</strong> 0.22802885021015 ETH
 </p>
 
-<h3>Step 1: Scan with Trust Wallet</h3>
-<img id="qrimg" style="width:260px;height:260px;border:1px solid #ccc" />
+<h3>Step 1: Connect Wallet</h3>
+<button id="connect">Generate QR Code</button>
+<br><br>
+<img id="qrimg" style="width:260px;height:260px;display:none;border:1px solid #ccc" />
 
 <h3>Step 2: Pay</h3>
 <button id="pay" disabled>Pay Now</button>
@@ -57,58 +59,51 @@
     });
 
     log("WalletConnect initialized");
-
-    // 🔥 FORCE CLEAR OLD SESSIONS
-    if (client.session.values.length > 0) {
-      log("Clearing old WalletConnect sessions...");
-      for (const s of client.session.values) {
-        await client.disconnect({
-          topic: s.topic,
-          reason: { code: 6000, message: "Reset session" }
-        });
-      }
-    }
-
-    await createConnection();
   }
 
-  async function createConnection() {
-    log("Creating WalletConnect session...");
+  // 🔑 USER ACTION REQUIRED
+  document.getElementById("connect").onclick = async () => {
+    try {
+      log("Creating WalletConnect session...");
 
-    const { uri, approval } = await client.connect({
-      requiredNamespaces: {
-        eip155: {
-          methods: ["eth_sendTransaction"],
-          chains: ["eip155:1"],
-          events: []
+      const { uri, approval } = await client.connect({
+        requiredNamespaces: {
+          eip155: {
+            methods: ["eth_sendTransaction"],
+            chains: ["eip155:1"],
+            events: []
+          }
         }
+      });
+
+      if (!uri) {
+        log("❌ No URI returned");
+        return;
       }
-    });
 
-    if (!uri) {
-      log("❌ NO URI RETURNED — QR CANNOT BE GENERATED");
-      log("Refresh the page and try again.");
-      return;
+      // Generate QR
+      const qrDataUrl = await QRCode.toDataURL(uri);
+      const img = document.getElementById("qrimg");
+      img.src = qrDataUrl;
+      img.style.display = "block";
+
+      log("QR code generated. Scan with Trust Wallet.");
+
+      // Wait for wallet approval
+      session = await approval();
+      userAddress = session.namespaces.eip155.accounts[0].split(":")[2];
+
+      log("Wallet connected:");
+      log("From: " + userAddress);
+      log("To:   " + RECEIVING_ADDRESS);
+
+      document.getElementById("pay").disabled = false;
+
+    } catch (e) {
+      log("CONNECT ERROR:");
+      log(e.message || JSON.stringify(e));
     }
-
-    log("URI received, generating QR...");
-
-    // ✅ MOST RELIABLE QR METHOD
-    const qrDataUrl = await QRCode.toDataURL(uri);
-    document.getElementById("qrimg").src = qrDataUrl;
-
-    log("QR code visible. Scan with Trust Wallet.");
-
-    // Wait for wallet to scan & approve
-    session = await approval();
-    userAddress = session.namespaces.eip155.accounts[0].split(":")[2];
-
-    log("Wallet connected:");
-    log("From: " + userAddress);
-    log("To:   " + RECEIVING_ADDRESS);
-
-    document.getElementById("pay").disabled = false;
-  }
+  };
 
   document.getElementById("pay").onclick = async () => {
     try {
