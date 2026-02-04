@@ -1,14 +1,14 @@
 <!DOCTYPE html>
-<!-- VERSION: BTG-PAYMENT-QR v1.0.7 -->
+<!-- VERSION: BTG-PAYMENT-QR v1.0.8 -->
 <html>
 <head>
   <meta charset="UTF-8" />
-  <title>BTG Technology – Payment (v1.0.7)</title>
+  <title>BTG Technology – Payment (v1.0.8)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 </head>
 <body>
 
-<h1 style="color:green;">✅ VERSION v1.0.7 LOADED</h1>
+<h1 style="color:green;">✅ VERSION v1.0.8 LOADED</h1>
 
 <h2>Payment Request</h2>
 
@@ -35,16 +35,17 @@
 
   /* ================= CONFIG ================= */
 
-  const PROJECT_ID = "3a25f7e3ad4aa26d7d4fc629e48a06b7";
+  // 🔑 NEW PROJECT ID (THIS IS THE ONLY CHANGE)
+  const PROJECT_ID = "8ca3e636b6f66f5a9ed28d6affa084de";
 
-  // BUSINESS receiving wallet
+  // Business receiving wallet
   const RECEIVING_ADDRESS =
     "0xA25900EA2A1915D549FB5a9CFb0a4FCA27a6Cd35";
 
   // 0.22802885021015 ETH (wei → hex)
   const VALUE_HEX = "0x0329f6b8d8c4c1e0";
 
-  // Required by Trust Wallet
+  // Trust Wallet–required gas fields
   const GAS_LIMIT = "0x5208";        // 21000
   const GAS_PRICE = "0x3B9ACA00";    // 1 gwei
 
@@ -65,14 +66,14 @@
       metadata: {
         name: "BTG Technology",
         description: "Invoice payment",
-        url: "https://www.bitget.com/",   // 👈 TEST URL
+        url: window.location.origin, // still GitHub Pages
         icons: []
       }
     });
 
     log("WalletConnect initialized");
 
-    // Clear stale sessions
+    // Clear stale sessions (important during testing)
     for (const s of client.session.values) {
       await client.disconnect({
         topic: s.topic,
