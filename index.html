@@ -1,14 +1,14 @@
 <!DOCTYPE html>
-<!-- VERSION: BTG-PAYMENT-QR v1.0.1 -->
+<!-- VERSION: BTG-PAYMENT-QR v1.0.2 -->
 <html>
 <head>
   <meta charset="UTF-8" />
-  <title>BTG Technology – Payment (v1.0.1)</title>
+  <title>BTG Technology – Payment (v1.0.2)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 </head>
 <body>
 
-<h1 style="color:green;">✅ VERSION v1.0.1 LOADED</h1>
+<h1 style="color:green;">✅ VERSION v1.0.2 LOADED</h1>
 
 <h2>Payment Request</h2>
 
@@ -44,6 +44,9 @@
   // 0.22802885021015 ETH → wei → hex
   const VALUE_HEX = "0x0329f6b8d8c4c1e0";
 
+  // Standard ETH transfer gas (21000)
+  const GAS_HEX = "0x5208";
+
   /* ================== */
 
   let client;
@@ -66,7 +69,6 @@
     log("WalletConnect initialized");
   }
 
-  // USER ACTION REQUIRED
   document.getElementById("connect").onclick = async () => {
     try {
       log("Creating WalletConnect session…");
@@ -86,10 +88,9 @@
         return;
       }
 
-      // ✅ Generate QR safely (module import)
-      const qrDataUrl = await QRCode.toDataURL(uri);
+      const qr = await QRCode.toDataURL(uri);
       const img = document.getElementById("qrimg");
-      img.src = qrDataUrl;
+      img.src = qr;
       img.style.display = "block";
 
       log("QR generated. Scan with Trust Wallet.");
@@ -122,7 +123,8 @@
           params: [{
             from: userAddress,
             to: RECEIVING_ADDRESS,
-            value: VALUE_HEX
+            value: VALUE_HEX,
+            gas: GAS_HEX
           }]
         }
       });
