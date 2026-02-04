@@ -1,23 +1,17 @@
 <!DOCTYPE html>
-<!-- VERSION: BTG-PAYMENT-QR v0.9.7 — 2026-02-04 -->
+<!-- VERSION: BTG-PAYMENT-QR v1.0.0 -->
 <html>
 <head>
   <meta charset="UTF-8" />
-  <title>BTG Technology – Payment (v0.9.7)</title>
+  <title>BTG Technology – Payment (v1.0.0)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- QR library -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
 </head>
 <body>
 
-<h1 style="color:red;">
-  🔴 VERSION v0.9.7 LOADED
-</h1>
-
-<p>
-  If you can see <strong>v0.9.7</strong> on this page, then
-  <strong>GitHub Pages IS updating correctly</strong>.
-</p>
-
-<hr>
+<h1 style="color:green;">✅ VERSION v1.0.0 LOADED</h1>
 
 <h2>Payment Request</h2>
 
@@ -26,9 +20,126 @@
   <strong>Amount:</strong> 0.22802885021015 ETH
 </p>
 
-<p style="color:blue;">
-  WalletConnect logic intentionally disabled in this version.
-</p>
+<hr>
+
+<h3>Step 1: Generate QR</h3>
+<button id="connect">Generate WalletConnect QR</button>
+<br><br>
+<img id="qrimg" style="display:none;width:260px;border:1px solid #ccc" />
+
+<h3>Step 2: Pay</h3>
+<button id="pay" disabled>Pay Now</button>
+
+<pre id="log" style="white-space:pre-wrap;color:#b00020;margin-top:20px;"></pre>
+
+<script type="module">
+  import SignClient from "https://esm.sh/@walletconnect/sign-client";
+
+  /* ===== CONFIG ===== */
+
+  const PROJECT_ID = "3a25f7e3ad4aa26d7d4fc629e48a06b7";
+
+  // Your BUSINESS wallet (receiver)
+  const RECEIVING_ADDRESS =
+    "0xA25900EA2A1915D549FB5a9CFb0a4FCA27a6Cd35";
+
+  // 0.22802885021015 ETH (wei → hex)
+  const VALUE_HEX = "0x0329f6b8d8c4c1e0";
+
+  /* ================== */
+
+  let client;
+  let session;
+  let userAddress;
+
+  const log = (m) =>
+    document.getElementById("log").textContent += m + "\n";
+
+  async function init() {
+    client = await SignClient.init({
+      projectId: PROJECT_ID,
+      metadata: {
+        name: "BTG Technology",
+        description: "Invoice payment",
+        url: window.location.href,
+        icons: []
+      }
+    });
+    log("WalletConnect initialized");
+  }
+
+  // USER ACTION REQUIRED
+  document.getElementById("connect").onclick = async () => {
+    try {
+      log("Creating WalletConnect session…");
+
+      const { uri, approval } = await client.connect({
+        requiredNamespaces: {
+          eip155: {
+            methods: ["eth_sendTransaction"],
+            chains: ["eip155:1"],
+            events: []
+          }
+        }
+      });
+
+      if (!uri) {
+        log("❌ No URI returned");
+        return;
+      }
+
+      // Render QR
+      const qr = await QRCode.toDataURL(uri);
+      const img = document.getElementById("qrimg");
+      img.src = qr;
+      img.style.display = "block";
+
+      log("QR generated. Scan with Trust Wallet.");
+
+      session = await approval();
+      userAddress =
+        session.namespaces.eip155.accounts[0].split(":")[2];
+
+      log("Wallet connected:");
+      log("From: " + userAddress);
+      log("To:   " + RECEIVING_ADDRESS);
+
+      document.getElementById("pay").disabled = false;
+
+    } catch (e) {
+      log("CONNECT ERROR:");
+      log(e.message || JSON.stringify(e));
+    }
+  };
+
+  document.getElementById("pay").onclick = async () => {
+    try {
+      log("Requesting payment…");
+
+      const tx = await client.request({
+        topic: session.topic,
+        chainId: "eip155:1",
+        request: {
+          method: "eth_sendTransaction",
+          params: [{
+            from: userAddress,
+            to: RECEIVING_ADDRESS,
+            value: VALUE_HEX
+          }]
+        }
+      });
+
+      log("Transaction sent!");
+      log("Tx hash: " + tx);
+
+    } catch (e) {
+      log("PAYMENT ERROR:");
+      log(e.message || JSON.stringify(e));
+    }
+  };
+
+  init();
+</script>
 
 </body>
 </html>
