@@ -1,14 +1,14 @@
 <!DOCTYPE html>
-<!-- VERSION: BTG-PAYMENT-QR v1.0.4 -->
+<!-- VERSION: BTG-PAYMENT-QR v1.0.5 -->
 <html>
 <head>
   <meta charset="UTF-8" />
-  <title>BTG Technology – Payment (v1.0.4)</title>
+  <title>BTG Technology – Payment (v1.0.5)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 </head>
 <body>
 
-<h1 style="color:green;">✅ VERSION v1.0.4 LOADED</h1>
+<h1 style="color:green;">✅ VERSION v1.0.5 LOADED</h1>
 
 <h2>Payment Request</h2>
 
@@ -36,11 +36,17 @@
   /* ===== CONFIG ===== */
 
   const PROJECT_ID = "3a25f7e3ad4aa26d7d4fc629e48a06b7";
-  const RECEIVING_ADDRESS = "0xA25900EA2A1915D549FB5a9CFb0a4FCA27a6Cd35";
+  const RECEIVING_ADDRESS =
+    "0xA25900EA2A1915D549FB5a9CFb0a4FCA27a6Cd35";
 
-  const VALUE_HEX = "0x0329f6b8d8c4c1e0"; // 0.22802885021015 ETH
-  const GAS_LIMIT = "0x5208";             // 21000
-  const GAS_PRICE = "0x3B9ACA00";         // 1 gwei
+  // 0.22802885021015 ETH
+  const VALUE_HEX = "0x0329f6b8d8c4c1e0";
+
+  // Trust Wallet REQUIRED fields
+  const GAS_LIMIT  = "0x5208";       // 21000
+  const GAS_PRICE  = "0x3B9ACA00";   // 1 gwei
+  const CHAIN_ID   = "0x1";          // Ethereum mainnet
+  const TX_TYPE    = "0x0";          // legacy tx
 
   /* ================== */
 
@@ -65,9 +71,8 @@
 
     log("WalletConnect initialized");
 
-    // 🔥 HARD CLEAN: disconnect any stale sessions
+    // Clear stale sessions
     for (const s of client.session.values) {
-      log("Clearing stale session: " + s.topic);
       await client.disconnect({
         topic: s.topic,
         reason: { code: 6000, message: "Reset" }
@@ -76,15 +81,12 @@
   }
 
   document.getElementById("connect").onclick = async () => {
-    if (connecting) {
-      log("Already connecting — please wait");
-      return;
-    }
-
+    if (connecting) return;
     connecting = true;
-    log("Starting WalletConnect…");
 
     try {
+      log("Creating WalletConnect session…");
+
       const { uri, approval } = await client.connect({
         requiredNamespaces: {
           eip155: {
@@ -109,7 +111,8 @@
       log("QR generated — scan with Trust Wallet");
 
       session = await approval();
-      userAddress = session.namespaces.eip155.accounts[0].split(":")[2];
+      userAddress =
+        session.namespaces.eip155.accounts[0].split(":")[2];
 
       log("Wallet connected");
       log("From: " + userAddress);
@@ -126,11 +129,6 @@
   };
 
   document.getElementById("pay").onclick = async () => {
-    if (!session) {
-      log("❌ No active session");
-      return;
-    }
-
     try {
       log("Requesting payment…");
 
@@ -144,7 +142,9 @@
             to: RECEIVING_ADDRESS,
             value: VALUE_HEX,
             gas: GAS_LIMIT,
-            gasPrice: GAS_PRICE
+            gasPrice: GAS_PRICE,
+            chainId: CHAIN_ID,
+            type: TX_TYPE
           }]
         }
       });
