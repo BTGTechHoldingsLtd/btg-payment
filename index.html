@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <title>BTG Technology – Payment</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 </head>
 <body>
 
@@ -16,20 +17,35 @@
 <button id="connect">Connect Wallet</button>
 <button id="pay" disabled>Pay Now</button>
 
+<pre id="log" style="white-space:pre-wrap;color:red;margin-top:20px;"></pre>
+
 <script type="module">
   import SignClient from "https://esm.sh/@walletconnect/sign-client";
 
-  // ===== CONFIG =====
+  /* ===================== CONFIG ===================== */
+
+  // WalletConnect Project ID
   const PROJECT_ID = "3a25f7e3ad4aa26d7d4fc629e48a06b7";
-  const RECEIVING_ADDRESS = "0xeDcaF7e899E73Cd9FFC57EFaa6F33bcB328C74ad";
+
+  // RECEIVING (your business wallet)
+  const RECEIVING_ADDRESS = "0xA25900EA2A1915D549FB5a9CFb0a4FCA27a6Cd35";
+
+  // SENDING (client wallet – shown here only for clarity)
+  // 0xfd50A8057ed2Af0Ee92Fed0CcA82035A256c91e4
 
   // 0.22802885021015 ETH in wei (hex)
   const VALUE_HEX = "0x0329f6b8d8c4c1e0";
-  // ==================
+
+  /* ================================================== */
 
   let client;
   let session;
   let userAddress;
+
+  const logEl = document.getElementById("log");
+  const log = (msg) => {
+    logEl.textContent += msg + "\n";
+  };
 
   async function init() {
     client = await SignClient.init({
@@ -41,18 +57,18 @@
         icons: []
       }
     });
+    log("WalletConnect initialized");
   }
 
-  // -------- CONNECT WALLET --------
+  /* ---------- CONNECT WALLET ---------- */
   document.getElementById("connect").onclick = async () => {
     try {
+      log("Connecting wallet...");
+
       const { uri, approval } = await client.connect({
         requiredNamespaces: {
           eip155: {
-            methods: [
-              "eth_sendTransaction",
-              "eth_signTransaction"
-            ],
+            methods: ["eth_sendTransaction"],
             chains: ["eip155:1"],
             events: []
           }
@@ -60,30 +76,31 @@
       });
 
       if (uri) {
-        // IMPORTANT: keeps JS session alive
+        // IMPORTANT: keeps JS session alive on iOS
         window.open(uri, "_blank");
       }
 
       session = await approval();
+      userAddress = session.namespaces.eip155.accounts[0].split(":")[2];
 
-      userAddress =
-        session.namespaces.eip155.accounts[0].split(":")[2];
+      log("Wallet connected:");
+      log("From address: " + userAddress);
+      log("To address:   " + RECEIVING_ADDRESS);
 
       document.getElementById("pay").disabled = false;
-      console.log("Wallet connected:", userAddress);
 
-    } catch (err) {
-      console.error("CONNECT ERROR:", err);
-      alert("Wallet connection failed. Check console.");
+    } catch (e) {
+      log("CONNECT ERROR:");
+      log(e.message || JSON.stringify(e));
     }
   };
 
-  // -------- PAY NOW --------
+  /* ---------- PAY NOW ---------- */
   document.getElementById("pay").onclick = async () => {
     try {
-      console.log("Requesting payment...");
+      log("Requesting payment...");
 
-      const tx = await client.request({
+      const txHash = await client.request({
         topic: session.topic,
         chainId: "eip155:1",
         request: {
@@ -98,12 +115,13 @@
         }
       });
 
-      console.log("Transaction hash:", tx);
-      alert("Transaction sent to Trust Wallet");
+      log("Transaction sent successfully!");
+      log("Transaction hash:");
+      log(txHash);
 
-    } catch (err) {
-      console.error("PAYMENT ERROR:", err);
-      alert("Payment failed. Check console.");
+    } catch (e) {
+      log("PAYMENT ERROR:");
+      log(e.message || JSON.stringify(e));
     }
   };
 
